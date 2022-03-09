@@ -75,7 +75,7 @@ namespace ahl::detail::wrapper{
             index, 
             std::enable_if_t<!std::is_floating_point_v<EllidedT> && (sizeof(EllidedT) <= 4) >>
         {
-            using type = ReplaceTypeAt_t<ParamList, index, EllidedT>;
+            using type = TL::ReplaceTypeAt_t<ParamList, index, EllidedT>;
         };
 
         template<typename ParamList, typename EllidedT, size_t index>
@@ -85,7 +85,7 @@ namespace ahl::detail::wrapper{
             index, 
             std::enable_if_t<!std::is_floating_point_v<EllidedT> && (sizeof(EllidedT) > 4) >>
         {
-            using type = ReplaceTypeAt_t<ParamList,2+index,EllidedT>;
+            using type = TL::ReplaceTypeAt_t<ParamList,2+index,EllidedT>;
         };
 
         template<typename TargetParamList, typename OrigParamList, size_t index>
