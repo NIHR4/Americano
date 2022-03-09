@@ -99,12 +99,6 @@ namespace OptcallOpt{
     struct tagStackPadding{};
 
 
-    template<typename T>
-    struct SmallerOrEqToFour{
-        static constexpr bool value = sizeof(T) <= 4;
-    };
-
-    
     template<typename TList>
     struct CountOptimizedParams{
     private:
@@ -124,10 +118,12 @@ namespace OptcallOpt{
     template<typename ParamList>
     using PreparePadding_t = typename PreparePadding<ParamList>::type;
     
-    template<typename Head, typename... Tail>
-    struct PreparePadding<TL::TypeList<Head, Tail...>>{
-        using type = TL::TypeList<tagEllidedType, tagEllidedType, tagStackPadding, tagStackPadding, Head, Tail...>;
+    template<typename... Params>
+    struct PreparePadding<TL::TypeList<Params...>>{
+        using type = TL::TypeList<tagEllidedType, tagEllidedType, tagStackPadding, tagStackPadding, Params...>;
     };
+    
+    
 
     
     template<typename TList>
@@ -140,19 +136,11 @@ namespace OptcallOpt{
 
     template<typename TList>
     struct RemoveArgs{
-    //private: 
-        using fourParamFirstHalf   = TL::ExtractSublist_t<TList,2>;
-        using fourParamSecondtHalf = TL::ExtractSublist_t<TL::EraseN_t<TList,2>,2>;
-        using firstHalfOpt  = TL::EraseIf_t<TL::EraseIf_t<fourParamFirstHalf, std::is_floating_point>, SmallerOrEqToFour>;
-        using secondHalfOpt = TL::EraseIf_t<fourParamSecondtHalf, std::is_floating_point>;
-        using trimmedList   = TL::EraseN_t<TList,4>;
+    private:
+        using trimmed   = TL::EraseN_t<TList,4>;
+        using params2T4 = TL::ExtractSublist_t<TL::EraseN_t<TList,2>,2>;
     public:  
-        using type = TL::Append_t<TL::Append_t<firstHalfOpt, secondHalfOpt>, trimmedList>;
-        
-        //using xmmopt = TL::EraseIf_t<subgroup, std::is_floating_point>;
-        //using regopt = TL::EraseIf_t<subgroup, SmallerOrEqToFour>;
-        //using optargs = TL::EraseIf_t<TL::EraseIf_t<fourParamFirstHalf, std::is_floating_point>, SmallerOrEqToFour>;
-        //using type = TL::Append_t<
+        using type = TL::Append_t<TL::EraseIf_t<params2T4, std::is_floating_point>, trimmed>;
     };
 
     template<typename TList>
@@ -181,7 +169,7 @@ namespace OptcallOpt{
         index, 
         std::enable_if_t<!std::is_floating_point_v<EllidedT> && (sizeof(EllidedT) <= 4) >>
     {
-        using type = ReplaceTypeAt_t<ParamList,index,EllidedT>;
+        using type = ReplaceTypeAt_t<ParamList, index, EllidedT>;
     };
 
     template<typename ParamList, typename EllidedT, size_t index>
@@ -213,12 +201,19 @@ namespace OptcallOpt{
     template<typename ParamList>
     struct OptimizeFunction{
     private: 
-        static constexpr size_t argCount = TL::Length_v<ParamList>;
+        static constexpr size_t argCount = std::clamp(TL::Length_v<ParamList>, 0u, 2u);//TL::Length_v<ParamList>;
         using PaddedArgs = PreparePadding_t<RemoveArgs_t<ParamList>>;
     public:  
         using type = RemoveStackPadding_t<OptimizeFunctionImpl_t<PaddedArgs, ParamList, argCount-1>>;//std::conditional_t<argCount != 0, OptimizeFunctionImpl_t<PaddedArgs, ParamList argCount-1>, ParamList>;
     };
     
+    template<>
+    struct OptimizeFunction<TL::TypeList<>>{
+        using type = TL::TypeList<>;
+    };
+
+    template<typename ParamList>
+    using OptimizeFunction_t = typename OptimizeFunction<ParamList>::type;
 }
 
 using namespace ahl::detail;
@@ -239,44 +234,17 @@ int main(){
     __asm mov edx, 555; //Target
     //createSrc(123, 456); //Targetdup, Menuselector
 
-    using tl = typename ahl::detail::TL::TypeList<int,int,float,float, int>;
-    using tr = typename OptcallOpt::ExtractSublist<tl, 3>::type;
-    OptcallOpt::CountElementsIf<std::is_floating_point, tl>::value;
-    //std::cout << OptcallOpt::CountOptimizedParams<tl>::value;
-    
-    using tl2 = typename TL::TypeList<int,long long,float,bool, double, float>;
-    using result =  typename OptcallOpt::RemoveArgs<tl2>::type;
+   using test1 = TypeList<int,short,float, bool, char>;
+   using test2 = TypeList<long long,short,float, float, char>;
+   using test3 = TypeList<int,long long,float, float, char>;
+   using test4 = TypeList<int>;
+   //using test5 = TypeList<long long>;
 
-    using amogus = typename TL::TypeList<int,float,bool>;
-    using sus = ReplaceTypeAt_t<amogus, 2, short>;
-    using gaeus = InsertTypeAt_t<amogus,1,double>;
-    //printType<sus>();
-    //printType<gaeus>();
-    using namespace OptcallOpt;
-    using target = typename TypeList<OptcallOpt::tagEllidedType, OptcallOpt::tagEllidedType, OptcallOpt::tagStackPadding, OptcallOpt::tagStackPadding,bool>;
-    using step1 = OptcallOpt::RemoveStackPadding_t<OptcallOpt::ReintroduceEllidedArgs_t<target, int, 0>>;
-    using step2 = OptcallOpt::RemoveStackPadding_t<OptcallOpt::ReintroduceEllidedArgs_t<target, long long, 1>>;
-    using finalstep = typename OptcallOpt::OptimizeFunction<amogus>::type;
-    using padamogus = OptcallOpt::RemoveArgs<amogus>::type;
-    using ff = PreparePadding_t<RemoveArgs_t<amogus>>;
-    printType<finalstep>();
-    //printType<step1>();
-    printType<ff>();
-    //OptcallOpt::ReintroduceEllidedArgs<a
-    //printType< typename OptcallOpt::RemoveArgs<tl2>::firstHalfOpt>();
-    //printType< typename OptcallOpt::RemoveArgs<tl2>::secondHalfOpt>();
-    
-    /*using e1 = typename TypeList<int>;
-    using e2 = typename TypeList<>;
-    using e3 = typename TypeList<bool>;
-    using j = Append_t<e1,e2>;
-    using k = Append_t<j, e3>;
-    
-    using slist = typename TypeList<int,long long, float, float, short>;
-    using res = EraseIf_t<slist, std::is_integral>;  
-    std::cout << TL::Length_v<res> << "\n";
-    std::cout << TL::CountTypeInList_v<res, float> << "\n";
-    printType<res>();*/
+   printType<OptcallOpt::OptimizeFunction_t<test1>>();
+   printType<OptcallOpt::OptimizeFunction_t<test2>>();
+   printType<OptcallOpt::OptimizeFunction_t<test3>>();
+   printType<OptcallOpt::OptimizeFunction_t<test4>>();
+   //printType<OptcallOpt::OptimizeFunction_t<test5>>();
 }
 /*DWORD WINAPI main_thread(void* hModule) {
     MH_Initialize();
