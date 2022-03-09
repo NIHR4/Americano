@@ -1,6 +1,6 @@
 #pragma once
 #include "common.h"
-
+#include <utility>
 namespace ahl::detail::wrapper{
     
     namespace OptcallOpt{
@@ -228,5 +228,51 @@ namespace ahl::detail::wrapper{
             >{};
     */
 
+   /*template<
+    typename OriginalParameters, 
+    typename GateParameters, 
+    typename OriginalParameterIs, 
+    typename ReturnType, 
+    bool CCER>
+    struct OptcallWrapperImpl;
+
+    template<
+        typename OriginalParameters, 
+        typename GateParameters, 
+        typename OriginalParameterIs, 
+        typename ReturnType, 
+        bool CCER
+    >struct OptcallWrapperImpl<OriginalPar>;*/
+    
+
+   //template<typename OriginalParameters, typename... FilteredParams, typename ReturnType, bool CCER, std::size_t... Ix>
+   // struct OptcallWrapperImpl<OriginalParameters, TL::TypeList<FilteredParams...>, ReturnType, CCER, Ix...>;
+
+    template<typename OriginalParameters,typename FilteredParameters,typename ReturnType, typename ParamIs>
+    struct OptcallGateGenerator;
+
+    template<typename OriginalParameters,typename... FilteredParameters,typename ReturnType, std::size_t... Is>
+    struct OptcallGateGenerator<OriginalParameters, TL::TypeList<FilteredParameters...>, ReturnType, std::index_sequence<Is...>>{
+        template<auto fn>
+        static ReturnType __fastcall wrapper_fn(FilteredParameters... args){
+
+        };
+    };
+
+   template<typename OriginalParameters, typename FilteredParameters, typename ReturnType, bool CCER>
+   struct OptcallWrapper{
+    private:
+       using signature = TypeListToFn_t<ReturnType, FilteredParameters>;
+       using P = ConditionalWrap<CCER, Convention::Optcall, FilteredParameters>;
+    public:
+        template<P fn>
+        OptcallGateGenerator<
+            OriginalParameters,
+            FilteredParameters, 
+            ReturnType, 
+            std::make_index_sequence<1>
+        >::template wrapper_fn<fn>;
+        //static ReturnType wrapper_fn()
+   };
    
 }
