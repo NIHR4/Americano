@@ -196,7 +196,7 @@ namespace ahl::detail::wrapper{
     //=======================================
     //OptcallWrapper - Implementation
     //=======================================
-    template<typename OriginalTypes, typename WrapperSignature, typename Is, bool CCER>
+    /*template<typename OriginalTypes, typename WrapperSignature, typename Is, bool CCER>
     struct OptcallWrapperImpl;
     
     template<
@@ -207,6 +207,7 @@ namespace ahl::detail::wrapper{
         std::size_t... Ix,
         bool CCER
     >
+    
     struct OptcallWrapperImpl<OriginalTypes, R(Args...), Is<std::size_t, Ix...>, CCER>{
     private: 
         using P = ConditionalWrap_t<CCER, Convention::Optcall,R(TL::TypeAt_t<OriginalTypes,Ix>...)>;
@@ -225,5 +226,7 @@ namespace ahl::detail::wrapper{
             std::make_index_sequence<TL::Length_v<OriginalTypes>>,
             CCER 
             >{};
+    */
 
+   
 }
