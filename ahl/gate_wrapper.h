@@ -59,10 +59,11 @@ namespace ahl{
             struct DetourWrapper<Convention::Optcall, R(Args...), CCER> :  
                 OptcallWrapper<
                     TL::TypeList<Args...>,  
-                    TypeListToFn_t<R,msvc_optimize_args<Args...>>,
+                    OptcallOpt::OptimizeFunction_t<TL::TypeList<Args...>>,
+                    R,
+                    std::make_index_sequence<sizeof...(Args)>,
                     CCER
-                >
-            {};
+                    >{};
 
             
             //=======================================

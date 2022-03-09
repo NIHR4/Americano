@@ -259,19 +259,19 @@ namespace ahl::detail::wrapper{
         };
     };
 
-   template<typename OriginalParameters, typename FilteredParameters, typename ReturnType, bool CCER>
-   struct OptcallWrapper{
+   template<typename OriginalParametersTL, typename FilteredParametersTL, typename ReturnType, typename OriginalParametersIs, bool CCER>
+   struct OptcallWrapper;
+   
+   template<typename OriginalParametersTL, typename... FilteredParameters, typename ReturnType, std::size_t... OriginalParametersIs, bool CCER>
+   struct OptcallWrapper<OriginalParametersTL, TL::TypeList<FilteredParameters...>, ReturnType, std::index_sequence<OriginalParametersIs...>, CCER>{
     private:
-       using signature = TypeListToFn_t<ReturnType, FilteredParameters>;
-       using P = ConditionalWrap<CCER, Convention::Optcall, FilteredParameters>;
+       using P = ConditionalWrap_t<CCER, Convention::Optcall, ReturnType(FilteredParameters...)>;
     public:
         template<P fn>
-        OptcallGateGenerator<
-            OriginalParameters,
-            FilteredParameters, 
-            ReturnType, 
-            std::make_index_sequence<1>
-        >::template wrapper_fn<fn>;
+        static ReturnType __fastcall wrapper_fn(FilteredParameters... args){
+            return fn(0,0,0,0);
+        }
+        
         //static ReturnType wrapper_fn()
    };
    
