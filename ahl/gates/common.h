@@ -41,6 +41,7 @@ namespace ahl{
         constexpr auto getNthElement(Head head, Tail... args){
             if constexpr(index == 0) return std::forward<Head>(head);
             else if constexpr(sizeof...(args) > 0) return getNthElement<index-1>(args...);
+            else return 111;
         }
     }
 }

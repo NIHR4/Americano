@@ -5,7 +5,7 @@
 #include <algorithm>
 #include "ahl/americano.h"
 #include <Windows.h>
-
+#include "ahl/gates/optcall.h"
 
 
 
@@ -80,13 +80,24 @@ ahl::Optcall<void*> createSrc(int targetdup, int menuSelector){
     return nullptr;
 }
 
-ahl::Optcall<void*> createHook(int sprite, int target, int targetdup, int menuSelector){
+
+
+
+ahl::Optcall<void*> createHook(int sprite, int, int target, int menuSelector){
     //return ahl::orig<&createHook>(sprite, target, targetdup, menuSelector);
     std::cout << "Sprite: " << sprite << "\n";
     std::cout << "target: " << target << "\n";
-    std::cout << "targetdup: " << targetdup << "\n";
+    //std::cout << "targetdup: " << targetdup << "\n";
     std::cout << "menuSelector: " << menuSelector << "\n";
-    return nullptr;
+
+    auto ptr = ahl::detail::invoker::OriginalInvoker<&createHook, ahl::Convention::Optcall>::realPtr;
+    auto val = reinterpret_cast<void* (__thiscall*)(int,int, int)>(ptr)(sprite,target,menuSelector);
+    __asm add esp, 8;
+
+
+
+
+    return val;
 }
 
 
@@ -103,27 +114,39 @@ void printType() {
     std::cout << __FUNCSIG__ << '\n';
 }
 
-int main(){
+int _main(){
     MH_Initialize();
     ahl::addHook<&createHook>((uint32_t) createSrc);
+    /*__asm push ebp;
     __asm mov ecx, 1337; //Sprite
     __asm mov edx, 555; //Target
+    __asm push 456;
+    __asm push 123;
+    __asm call createSrc;
+    __asm add esp, 16*/
+    //printType<ahl::detail::Detour<decltype(createHook),ahl::Convention::Optcall>::ty>();
+    
     //createSrc(123, 456); //Targetdup, Menuselector
-
+    return 0;
    /*using test1 = TypeList<int,short,float, bool, char>;
    using test2 = TypeList<long long,short,float, float, char>;
    using test3 = TypeList<int,long long,float, float, char>;
    using test4 = TypeList<int>;
    //using test5 = TypeList<long long>;
 
-   printType<OptcallOpt::OptimizeFunction_t<test1>>();
-   printType<OptcallOpt::OptimizeFunction_t<test2>>();
-   printType<OptcallOpt::OptimizeFunction_t<test3>>();
-   printType<OptcallOpt::OptimizeFunction_t<test4>>();*/
+   printType<wrapper::OptcallOpt::OptimizeFunction_t<test1>>();
+   printType<wrapper::OptcallOpt::OptimizeFunction_t<test2>>();
+   printType<wrapper::OptcallOpt::OptimizeFunction_t<test3>>();
+   printType<wrapper::OptcallOpt::OptimizeFunction_t<test4>>();*/
    //printType<OptcallOpt::OptimizeFunction_t<test5>>();
 }
-/*DWORD WINAPI main_thread(void* hModule) {
+DWORD WINAPI main_thread(void* hModule) {
     MH_Initialize();
+    AllocConsole();
+    FILE *fDummy;
+    freopen_s(&fDummy, "CONIN$", "r", stdin);
+    freopen_s(&fDummy, "CONOUT$", "w", stderr);
+    freopen_s(&fDummy, "CONOUT$", "w", stdout);
     auto base =  (uint32_t)GetModuleHandle(0);
     //ahl::detail::ExtractUnderlyingHookType<decltype(createHook)>::type;
     MessageBoxA(0,"Injected",nullptr, MB_OK);
@@ -148,4 +171,4 @@ BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,LPVOID lpReser
         break;
     }
     return TRUE;
-}*/
+}

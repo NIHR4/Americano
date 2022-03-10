@@ -63,7 +63,9 @@ namespace ahl{
                     R,
                     std::make_index_sequence<sizeof...(Args)>,
                     CCER
-                    >{};
+                    >{
+                        using ty = OptcallOpt::OptimizeFunction_t<TL::TypeList<Args...>>;
+                    };
 
             
             //=======================================

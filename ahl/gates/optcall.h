@@ -122,131 +122,51 @@ namespace ahl::detail::wrapper{
         using OptimizeFunction_t = typename OptimizeFunction<ParamList>::type;
     }
     
-    
 
-    
-    /*template<typename T, typename RealArgsList>
-    struct GetOptcallArgumentImpl{
-        template<std::size_t index,typename... Args>
-        static T getArg(Args...  stackargs){
-            T val;
-            if constexpr(sizeof(T) <= 4 && index == 0) __ asm mov val, ecx;
-            else if constexpr(sizeof(T) <= 4 && index == 0) __asm mov val, edx;
-            else
-            {
-                constexpr std::size_t ellidedElements = CountEllidedTypesAtPos<RealArgsList, std::clamp(index,0u,4u)>;
-                constexpr std::size_t realIndex = index-ellidedElements;
-                val = getNthElement<realIndex>(stackargs...);
+    template<typename OriginalTypesTL, std::size_t index, typename... StackArgs>
+    auto extractRealArgument(StackArgs... stackArgs){
+        using targetType = TL::TypeAt_t<OriginalTypesTL, index>;
+        
+        //Float branch
+        if constexpr(std::is_floating_point_v<targetType> && index <= 4){
+            if constexpr(std::is_same_v<targetType, float>){
+                float val=0;
+                if constexpr(index == 0) __asm movss val, xmm0;
+                else if constexpr(index == 1) __asm movss val, xmm1;
+                else if constexpr(index == 2) __asm movss val, xmm2;
+                else if constexpr(index == 3) __asm movss val, xmm3;
+                return val;
+
+            }else if constexpr(std::is_same_v<targetType, double>){
+                double val=0;
+                if constexpr(index == 0) __asm movsd val, xmm0;
+                else if constexpr(index == 1) __asm movsd val, xmm1;
+                else if constexpr(index == 2) __asm movsd val, xmm2;
+                else if constexpr(index == 3) __asm movsd val, xmm3;
+                return val;
             }
-            return val;
         }
-    };
 
-    template<typename RealArgsList>
-    struct GetOptcallArgumentImpl<float, RealArgsList>{
-        template<std::size_t index, typename... Args>
-        static float getArg(Args... stackargs){
-            float val;
-            if constexpr(index == 0) __asm movss val, xmm0;
-            else if constexpr(index == 1) __asm movss val, xmm1;
-            else if constexpr(index == 2) __asm movss val, xmm2;
-            else if constexpr(index == 3) __asm movss val, xmm3;
-            else
-            {
-                constexpr std::size_t ellidedElements = CountEllidedTypesAtPos<RealArgsList, std::clamp(index,0u,4u)>;
-                constexpr std::size_t realIndex = index-ellidedElements;
-                val = getNthElement<realIndex>(stackargs...);
-            }
-            return val;
-            
+        //Optimizable branch, non-floats
+        if constexpr(index < 2 && sizeof(TL::TypeAt_t<OriginalTypesTL,index>)  <= 4){
+            return getNthElement<index>(stackArgs...);
+        }else if constexpr(index < 2 && sizeof(TL::TypeAt_t<OriginalTypesTL,index>)  > 4){
+            if constexpr(index == 1 && sizeof(TL::TypeAt_t<OriginalTypesTL, index-1>) <= 4 ) return getNthElement<2>(stackArgs...);
+            else if constexpr(index == 1 && sizeof(TL::TypeAt_t<OriginalTypesTL, index-1>) > 4) return getNthElement<3>(stackArgs...);
+            else return getNthElement<index+2>(stackArgs...);
         }
-    };
-    
-    template<typename RealArgsList>
-    struct GetOptcallArgumentImpl<double, RealArgsList>{
-        template<std::size_t index, typename... Args>
-        static double getArg(Args... stackargs){
-            double val;
-            if constexpr(index == 0) __asm movss val, xmm0;
-            else if constexpr(index == 1) __asm movsd val, xmm1;
-            else if constexpr(index == 2) __asm movsd val, xmm2;
-            else if constexpr(index == 3) __asm movsd val, xmm3;
-            else
-            {
-                constexpr std::size_t ellidedElements = CountEllidedTypesAtPos<RealArgsList, std::clamp(index,0u,4u)>;
-                constexpr std::size_t realIndex = index-ellidedElements;
-                val = getNthElement<realIndex>(stackargs...);
-            }
-            return val;
-            
-        }
-    };
+        
+        //Everything else
+        //((std::cout << (stackArgs) << ", "), ...);
+        //std::cout << std::endl;
+        return getNthElement<index>(stackArgs...);
+        //return 300;
 
-    template<std::size_t index, typename RealArgsList>
-    struct GetOptcallArgument{
-        template<typename... Args>
-        static auto getValue(Args... stackArgs){
-            return GetOptcallArgumentImpl<returnType,RealArgsList>::getArg<index>(stackArgs...);
-        }
-    private:
-        using returnType = TL::TypeAt_t<RealArgsList, index>;
+    }
 
-    };*/
 
-    //=======================================
-    //OptcallWrapper - Implementation
-    //=======================================
-    /*template<typename OriginalTypes, typename WrapperSignature, typename Is, bool CCER>
-    struct OptcallWrapperImpl;
-    
-    template<
-        typename OriginalTypes, 
-        typename R, 
-        typename... Args, 
-        template<typename I, I...> typename Is, 
-        std::size_t... Ix,
-        bool CCER
-    >
-    
-    struct OptcallWrapperImpl<OriginalTypes, R(Args...), Is<std::size_t, Ix...>, CCER>{
-    private: 
-        using P = ConditionalWrap_t<CCER, Convention::Optcall,R(TL::TypeAt_t<OriginalTypes,Ix>...)>;
-    public:
-        template<P fn>
-        static R wrapper_fn(Args... args){
-            return 0;
-            //return fn(GetOptcallArgument<Ix, OriginalTypes>::getValue(args...) ... );
-        }
-    };
 
-    template<typename OriginalTypes, typename WrapperSignature, bool CCER>
-        struct OptcallWrapper : OptcallWrapperImpl<
-            OriginalTypes, 
-            WrapperSignature, 
-            std::make_index_sequence<TL::Length_v<OriginalTypes>>,
-            CCER 
-            >{};
-    */
 
-   /*template<
-    typename OriginalParameters, 
-    typename GateParameters, 
-    typename OriginalParameterIs, 
-    typename ReturnType, 
-    bool CCER>
-    struct OptcallWrapperImpl;
-
-    template<
-        typename OriginalParameters, 
-        typename GateParameters, 
-        typename OriginalParameterIs, 
-        typename ReturnType, 
-        bool CCER
-    >struct OptcallWrapperImpl<OriginalPar>;*/
-    
-
-   //template<typename OriginalParameters, typename... FilteredParams, typename ReturnType, bool CCER, std::size_t... Ix>
-   // struct OptcallWrapperImpl<OriginalParameters, TL::TypeList<FilteredParams...>, ReturnType, CCER, Ix...>;
 
     template<typename OriginalParameters,typename FilteredParameters,typename ReturnType, typename ParamIs>
     struct OptcallGateGenerator;
@@ -262,17 +182,17 @@ namespace ahl::detail::wrapper{
    template<typename OriginalParametersTL, typename FilteredParametersTL, typename ReturnType, typename OriginalParametersIs, bool CCER>
    struct OptcallWrapper;
    
+
    template<typename OriginalParametersTL, typename... FilteredParameters, typename ReturnType, std::size_t... OriginalParametersIs, bool CCER>
    struct OptcallWrapper<OriginalParametersTL, TL::TypeList<FilteredParameters...>, ReturnType, std::index_sequence<OriginalParametersIs...>, CCER>{
     private:
        using P = ConditionalWrap_t<CCER, Convention::Optcall, ReturnType(FilteredParameters...)>;
     public:
         template<P fn>
-        static ReturnType __fastcall wrapper_fn(FilteredParameters... args){
-            return fn(0,0,0,0);
+        static ReturnType __cdecl _wrapper_fn(FilteredParameters... args){
+            return fn(extractRealArgument<OriginalParametersTL, OriginalParametersIs>(args...) ...);
         }
-        
-        //static ReturnType wrapper_fn()
+                
    };
-   
+ 
 }
